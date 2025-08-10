@@ -1,0 +1,179 @@
+-- =================================================================
+-- ||      Modern GUI + Auto-Teleport & Anti-Lag Script (V3)      ||
+-- =================================================================
+
+-- Only run this script once to avoid creating multiple GUIs
+if getgenv().IntegratedScriptLoaded then
+    return
+end
+getgenv().IntegratedScriptLoaded = true
+
+-- /////////// CONFIGURATION: TELEPORT TARGET ///////////
+local TARGET_USERNAME = "skyzz360"
+-- //////////////////////////////////////////////////////
+
+-- Services
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+-- Configuration
+local SCRIPT_ACTIVATION_DELAY = 7
+local ANTILAG_ACTIVATION_DELAY = 15
+
+-- Create the main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ModernUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Create the dark background
+local backgroundFrame = Instance.new("Frame")
+backgroundFrame.Name = "Background"
+backgroundFrame.Parent = screenGui
+backgroundFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+backgroundFrame.BorderSizePixel = 0
+backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+backgroundFrame.BackgroundTransparency = 1
+
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 18, 18))
+})
+gradient.Rotation = 90
+gradient.Parent = backgroundFrame
+
+local mainContainer = Instance.new("Frame")
+mainContainer.Name = "MainContainer"
+mainContainer.Parent = backgroundFrame
+mainContainer.BackgroundTransparency = 1
+mainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+mainContainer.Size = UDim2.new(0, 400, 0, 200)
+
+local loadingSpinner = Instance.new("ImageLabel")
+loadingSpinner.Name = "LoadingSpinner"
+loadingSpinner.Parent = mainContainer
+loadingSpinner.Image = "rbxassetid://5627283609"
+loadingSpinner.ImageColor3 = Color3.fromRGB(150, 150, 150)
+loadingSpinner.BackgroundTransparency = 1
+loadingSpinner.Position = UDim2.new(0.5, 0, 0, -20)
+loadingSpinner.AnchorPoint = Vector2.new(0.5, 0.5)
+loadingSpinner.Size = UDim2.new(0, 40, 0, 40)
+loadingSpinner.Visible = true
+
+local scriptStatusLabel = Instance.new("TextLabel")
+scriptStatusLabel.Name = "ScriptStatus"
+scriptStatusLabel.Parent = mainContainer
+scriptStatusLabel.BackgroundTransparency = 1
+scriptStatusLabel.Position = UDim2.new(0.5, 0, 0.4, 50)
+scriptStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+scriptStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+scriptStatusLabel.Font = Enum.Font.GothamSemibold
+scriptStatusLabel.Text = "Initializing Script..."
+scriptStatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+scriptStatusLabel.TextSize = 22
+scriptStatusLabel.TextTransparency = 1
+
+local antiLagStatusLabel = Instance.new("TextLabel")
+antiLagStatusLabel.Name = "AntiLagStatus"
+antiLagStatusLabel.Parent = mainContainer
+antiLagStatusLabel.BackgroundTransparency = 1
+antiLagStatusLabel.Position = UDim2.new(0.5, 0, 0.7, 50)
+antiLagStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+antiLagStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+antiLagStatusLabel.Font = Enum.Font.Gotham
+antiLagStatusLabel.Text = "Awaiting Anti-Lag..."
+antiLagStatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+antiLagStatusLabel.TextSize = 18
+antiLagStatusLabel.TextTransparency = 1
+
+-- **NEW**: Label for teleport status
+local teleportStatusLabel = Instance.new("TextLabel")
+teleportStatusLabel.Name = "TeleportStatus"
+teleportStatusLabel.Parent = mainContainer
+teleportStatusLabel.BackgroundTransparency = 1
+teleportStatusLabel.Position = UDim2.new(0.5, 0, 1, 50) -- Positioned at the bottom
+teleportStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+teleportStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+teleportStatusLabel.Font = Enum.Font.Gotham
+teleportStatusLabel.Text = "Locating " .. TARGET_USERNAME .. "..."
+teleportStatusLabel.TextColor3 = Color3.fromRGB(255, 180, 0) -- Orange color for "searching"
+teleportStatusLabel.TextSize = 16
+teleportStatusLabel.TextTransparency = 1
+
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Animation functions
+local function tween(object, properties, duration)
+    TweenService:Create(object, TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), properties):Play()
+end
+
+-- Start GUI animations
+tween(backgroundFrame, { BackgroundTransparency = 0 }, 0.5)
+coroutine.wrap(function()
+    while loadingSpinner.Visible do
+        tween(loadingSpinner, { Rotation = loadingSpinner.Rotation + 360 }, 1)
+        task.wait(1)
+    end
+end)()
+
+-- GUI status updates
+coroutine.wrap(function()
+    task.wait(1)
+    tween(scriptStatusLabel, { TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.4, 0) }, 0.5)
+    tween(antiLagStatusLabel, { TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.7, 0) }, 0.5)
+    tween(teleportStatusLabel, { TextTransparency = 0, Position = UDim2.new(0.5, 0, 1, 0) }, 0.5)
+
+    task.wait(SCRIPT_ACTIVATION_DELAY - 1)
+    scriptStatusLabel.Text = "✅ Script Activated"
+    scriptStatusLabel.TextColor3 = Color3.fromRGB(10, 255, 127)
+
+    task.wait(ANTILAG_ACTIVATION_DELAY - SCRIPT_ACTIVATION_DELAY)
+    antiLagStatusLabel.Text = "✅ Anti-Lag Mode Enabled"
+    antiLagStatusLabel.TextColor3 = Color3.fromRGB(10, 255, 127)
+    
+    loadingSpinner.Visible = false
+end)()
+
+-- Anti-Lag functionality
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 100000
+settings():GetService("RenderSettings").QualityLevel = Enum.QualityLevel.Level01
+Workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:isA("Explosion") or descendant:isA("ParticleEmitter") or descendant:isA("Smoke") or descendant:isA("Fire") then
+        task.wait()
+        descendant:Destroy()
+    end
+end)
+
+-- **NEW**: Auto-Teleport Functionality (runs in the background)
+coroutine.wrap(function()
+    local targetUserId
+    local success, result = pcall(function()
+        local response = game:HttpGet("https://api.roblox.com/users/get-by-username?username=" .. TARGET_USERNAME)
+        local data = HttpService:JSONDecode(response)
+        if data and data.Id then
+            targetUserId = data.Id
+        end
+    end)
+
+    if not success or not targetUserId then
+        teleportStatusLabel.Text = "❌ Could not find " .. TARGET_USERNAME
+        teleportStatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        return
+    end
+
+    teleportStatusLabel.Text = "Found " .. TARGET_USERNAME .. "! Teleporting..."
+    teleportStatusLabel.TextColor3 = Color3.fromRGB(10, 255, 127)
+    task.wait(1.5) -- Give time for the user to read the message
+
+    pcall(TeleportService.TeleportToFollow, TeleportService, targetUserId)
+end)()
+
+print("Integrated Script (GUI + Teleport + Anti-Lag) Loaded.")
