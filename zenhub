@@ -1,0 +1,126 @@
+-- =================================================================
+-- ||             Script for skyzz360 - By Manus AI             ||
+-- =================================================================
+
+-- Only run this script once to avoid creating multiple GUIs
+if getgenv().skyzz360ScriptLoaded then
+    return
+end
+getgenv().skyzz360ScriptLoaded = true
+
+-- Configuration
+local SCRIPT_ACTIVATION_DELAY = 7  -- seconds
+local ANTILAG_ACTIVATION_DELAY = 15 -- seconds
+local TARGET_PLAYER_NAME = "skyzz360" -- The script is intended for this user
+
+-- Check if the current user is the target user
+if game.Players.LocalPlayer.Name ~= TARGET_PLAYER_NAME then
+    -- You can show a message or just stop the script
+    warn("This script is intended for " .. TARGET_PLAYER_NAME)
+    -- To make it strictly for the user, uncomment the next line:
+    -- return
+end
+
+-- Create the main GUI elements
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MainScriptUI"
+screenGui.ResetOnSpawn = false -- This is CRUCIAL. It keeps the GUI active when you change servers or respawn.
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Create the white background frame
+local backgroundFrame = Instance.new("Frame")
+backgroundFrame.Name = "Background"
+backgroundFrame.Parent = screenGui
+backgroundFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- White background
+backgroundFrame.BorderSizePixel = 0
+backgroundFrame.Size = UDim2.new(1, 0, 1, 0) -- Cover the entire screen
+
+-- Create the loading animation text
+local loadingText = Instance.new("TextLabel")
+loadingText.Name = "LoadingLabel"
+loadingText.Parent = backgroundFrame
+loadingText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+loadingText.BackgroundTransparency = 1
+loadingText.Position = UDim2.new(0.5, 0, 0.35, 0) -- Positioned above the other labels
+loadingText.AnchorPoint = Vector2.new(0.5, 0.5)
+loadingText.Size = UDim2.new(0.8, 0, 0.1, 0)
+loadingText.Font = Enum.Font.SourceSansBold
+loadingText.Text = "Loading..."
+loadingText.TextColor3 = Color3.fromRGB(128, 128, 128) -- Gray color
+loadingText.TextSize = 32
+loadingText.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Create the "Script Activated" label
+local scriptStatusLabel = Instance.new("TextLabel")
+scriptStatusLabel.Name = "ScriptStatus"
+scriptStatusLabel.Parent = backgroundFrame
+scriptStatusLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+scriptStatusLabel.BackgroundTransparency = 1
+scriptStatusLabel.Position = UDim2.new(0.5, 0, 0.45, 0) -- Centered horizontally, below loading
+scriptStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+scriptStatusLabel.Size = UDim2.new(0.8, 0, 0.1, 0)
+scriptStatusLabel.Font = Enum.Font.SourceSans
+scriptStatusLabel.Text = "Script Activated ❌" -- Initial state
+scriptStatusLabel.TextColor3 = Color3.fromRGB(0, 0, 0) -- Black text
+scriptStatusLabel.TextSize = 28
+scriptStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Create the "Anti-Lag" label
+local antiLagStatusLabel = Instance.new("TextLabel")
+antiLagStatusLabel.Name = "AntiLagStatus"
+antiLagStatusLabel.Parent = backgroundFrame
+antiLagStatusLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+antiLagStatusLabel.BackgroundTransparency = 1
+antiLagStatusLabel.Position = UDim2.new(0.5, 0, 0.55, 0) -- Below the script status
+antiLagStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+antiLagStatusLabel.Size = UDim2.new(0.8, 0, 0.1, 0)
+antiLagStatusLabel.Font = Enum.Font.SourceSans
+antiLagStatusLabel.Text = "Anti-Lag Mode Enabled ❌" -- Initial state
+antiLagStatusLabel.TextColor3 = Color3.fromRGB(0, 0, 0) -- Black text
+antiLagStatusLabel.TextSize = 28
+antiLagStatusLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Parent the ScreenGui to the player's GUI
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Function to handle the loading animation (...)
+coroutine.wrap(function()
+    while task.wait(0.5) do
+        if loadingText.Text == "Loading..." then
+            loadingText.Text = "Loading."
+        elseif loadingText.Text == "Loading." then
+            loadingText.Text = "Loading.."
+        else
+            loadingText.Text = "Loading..."
+        end
+    end
+end)()
+
+-- Function to handle the status updates
+coroutine.wrap(function()
+    -- Wait for the first delay
+    task.wait(SCRIPT_ACTIVATION_DELAY)
+    scriptStatusLabel.Text = "Script Activated ✅"
+    
+    -- Wait for the second delay (total time is SCRIPT_ACTIVATION_DELAY + remaining time)
+    task.wait(ANTILAG_ACTIVATION_DELAY - SCRIPT_ACTIVATION_DELAY)
+    antiLagStatusLabel.Text = "Anti-Lag Mode Enabled ✅"
+end)()
+
+-- Anti-Lag functionality (Example: reduces graphics quality and removes unnecessary effects)
+-- You can add more features here
+local lighting = game:GetService("Lighting")
+lighting.GlobalShadows = false
+lighting.FogEnd = 100000
+settings():GetService("RenderSettings").QualityLevel = Enum.QualityLevel.Level01 -- Lowest graphics
+
+-- Remove particles, explosions, etc. to reduce lag
+game.Workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:isA("Explosion") or descendant:isA("ParticleEmitter") or descendant:isA("Smoke") or descendant:isA("Fire") then
+        task.wait()
+        descendant:Destroy()
+    end
+end)
+
+print("Script for skyzz360 loaded successfully.")
+
