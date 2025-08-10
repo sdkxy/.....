@@ -1,0 +1,13 @@
+local success, err = pcall(function()
+    local TeleportService = game:GetService("TeleportService")
+    local placeId = 126884695634066  -- الرقم الصحيح للعبة
+    local privateServerId = "434285057271476812851925919395"  -- معرف السيرفر الخاص
+
+    TeleportService:TeleportToPlaceInstance(placeId, privateServerId, game.Players.LocalPlayer)
+end)
+
+if not success then
+    print("Error teleporting: "..tostring(err))
+else
+    print("Teleport request sent.")
+end
