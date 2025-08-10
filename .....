@@ -1,0 +1,148 @@
+-- =================================================================
+-- ||           Modern GUI & Anti-Lag Script (V2)               ||
+-- =================================================================
+
+-- Only run this script once to avoid creating multiple GUIs
+if getgenv().ModernGUILoaded then
+    return
+end
+getgenv().ModernGUILoaded = true
+
+-- Services
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+-- Configuration
+local SCRIPT_ACTIVATION_DELAY = 7
+local ANTILAG_ACTIVATION_DELAY = 15
+
+-- Create the main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ModernUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Create the dark background
+local backgroundFrame = Instance.new("Frame")
+backgroundFrame.Name = "Background"
+backgroundFrame.Parent = screenGui
+backgroundFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 18) -- Dark background
+backgroundFrame.BorderSizePixel = 0
+backgroundFrame.Size = UDim2.new(1, 0, 1, 0)
+backgroundFrame.BackgroundTransparency = 1 -- Start transparent for fade-in
+
+-- Add a subtle radial gradient for a modern look
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 18, 18))
+})
+gradient.Rotation = 90
+gradient.Parent = backgroundFrame
+
+-- Main container for centering content
+local mainContainer = Instance.new("Frame")
+mainContainer.Name = "MainContainer"
+mainContainer.Parent = backgroundFrame
+mainContainer.BackgroundTransparency = 1
+mainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+mainContainer.Size = UDim2.new(0, 400, 0, 200)
+
+-- Create a modern loading spinner
+local loadingSpinner = Instance.new("ImageLabel")
+loadingSpinner.Name = "LoadingSpinner"
+loadingSpinner.Parent = mainContainer
+loadingSpinner.Image = "rbxassetid://5627283609" -- A clean spinner image
+loadingSpinner.ImageColor3 = Color3.fromRGB(150, 150, 150)
+loadingSpinner.BackgroundTransparency = 1
+loadingSpinner.Position = UDim2.new(0.5, 0, 0, -20)
+loadingSpinner.AnchorPoint = Vector2.new(0.5, 0.5)
+loadingSpinner.Size = UDim2.new(0, 40, 0, 40)
+loadingSpinner.Visible = true
+
+-- Create the "Script Activated" label
+local scriptStatusLabel = Instance.new("TextLabel")
+scriptStatusLabel.Name = "ScriptStatus"
+scriptStatusLabel.Parent = mainContainer
+scriptStatusLabel.BackgroundTransparency = 1
+scriptStatusLabel.Position = UDim2.new(0.5, 0, 0.4, 50) -- Start lower for animation
+scriptStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+scriptStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+scriptStatusLabel.Font = Enum.Font.GothamSemibold
+scriptStatusLabel.Text = "Initializing Script..."
+scriptStatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+scriptStatusLabel.TextSize = 22
+scriptStatusLabel.TextTransparency = 1 -- Start transparent
+
+-- Create the "Anti-Lag" label
+local antiLagStatusLabel = Instance.new("TextLabel")
+antiLagStatusLabel.Name = "AntiLagStatus"
+antiLagStatusLabel.Parent = mainContainer
+antiLagStatusLabel.BackgroundTransparency = 1
+antiLagStatusLabel.Position = UDim2.new(0.5, 0, 0.7, 50) -- Start lower for animation
+antiLagStatusLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+antiLagStatusLabel.Size = UDim2.new(1, 0, 0, 30)
+antiLagStatusLabel.Font = Enum.Font.Gotham
+antiLagStatusLabel.Text = "Awaiting Anti-Lag..."
+antiLagStatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+antiLagStatusLabel.TextSize = 18
+antiLagStatusLabel.TextTransparency = 1 -- Start transparent
+
+-- Parent the ScreenGui to the player's GUI
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+-- Animation functions
+local function tween(object, properties, duration)
+    TweenService:Create(object, TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), properties):Play()
+end
+
+-- Start animations
+tween(backgroundFrame, { BackgroundTransparency = 0 }, 0.5)
+coroutine.wrap(function()
+    while loadingSpinner.Visible do
+        tween(loadingSpinner, { Rotation = loadingSpinner.Rotation + 360 }, 1)
+        task.wait(1)
+    end
+end)()
+
+-- Function to handle the status updates with animations
+coroutine.wrap(function()
+    task.wait(1) -- Initial delay for fade-in
+    tween(scriptStatusLabel, { TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.4, 0) }, 0.5)
+    tween(antiLagStatusLabel, { TextTransparency = 0, Position = UDim2.new(0.5, 0, 0.7, 0) }, 0.5)
+
+    -- Wait for the first delay
+    task.wait(SCRIPT_ACTIVATION_DELAY - 1)
+    scriptStatusLabel.Text = "✅ Script Activated"
+    scriptStatusLabel.TextColor3 = Color3.fromRGB(10, 255, 127) -- Neon Green
+    tween(scriptStatusLabel, { TextSize = 24 }, 0.2)
+    tween(scriptStatusLabel, { TextSize = 22 }, 0.2)
+
+    -- Wait for the second delay
+    task.wait(ANTILAG_ACTIVATION_DELAY - SCRIPT_ACTIVATION_DELAY)
+    antiLagStatusLabel.Text = "✅ Anti-Lag Mode Enabled"
+    antiLagStatusLabel.TextColor3 = Color3.fromRGB(10, 255, 127) -- Neon Green
+    tween(antiLagStatusLabel, { TextSize = 20 }, 0.2)
+    tween(antiLagStatusLabel, { TextSize = 18 }, 0.2)
+    
+    -- Stop the spinner
+    loadingSpinner.Visible = false
+end)()
+
+-- Anti-Lag functionality
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 100000
+settings():GetService("RenderSettings").QualityLevel = Enum.QualityLevel.Level01
+
+Workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:isA("Explosion") or descendant:isA("ParticleEmitter") or descendant:isA("Smoke") or descendant:isA("Fire") then
+        task.wait()
+        descendant:Destroy()
+    end
+end)
+
+print("Modern GUI & Anti-Lag Script Loaded.")
