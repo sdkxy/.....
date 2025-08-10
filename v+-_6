@@ -1,0 +1,225 @@
+-- =======================================================================================
+-- ||                 AUTO-JOINER: PROFESSIONAL EDITION (GUI + TELEPORT)                ||
+-- =======================================================================================
+-- || FEATURES:                                                                         ||
+-- || - Advanced UI/UX with dynamic animations and loading sequence.                    ||
+-- || - Intelligent, multi-attempt teleport logic with detailed status feedback.        ||
+-- || - Robust error handling and performance optimizations.                            ||
+-- || - Persistent and fully automatic operation across game sessions.                  ||
+-- =======================================================================================
+
+-- Prevent script re-injection and conflicts
+if getgenv().AutoJoinerProLoaded then
+    return
+end
+getgenv().AutoJoinerProLoaded = true
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                  CONFIGURATION                                   //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local CONFIG = {
+    PRIVATE_SERVER_CODE = "f9025449a7fe8f47a695dfab1ef33859",
+    MAX_TELEPORT_ATTEMPTS = 3,          -- Number of quick retries before a long pause
+    RETRY_DELAY_SHORT = 5,              -- Seconds between quick retries
+    RETRY_DELAY_LONG = 30,              -- Seconds to wait after all attempts fail
+}
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                     SERVICES                                     //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local Services = {
+    Players = game:GetService("Players"),
+    Lighting = game:GetService("Lighting"),
+    Workspace = game:GetService("Workspace"),
+    TeleportService = game:GetService("TeleportService"),
+    TweenService = game:GetService("TweenService"),
+    RunService = game:GetService("RunService"),
+    UserInputService = game:GetService("UserInputService"),
+}
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                  GUI & INTERFACE                                   //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local GUI = {}
+do
+    local player = Services.Players.LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AutoJoinerProUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local background = Instance.new("Frame")
+    background.Name = "Background"
+    background.Parent = screenGui
+    background.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    background.BackgroundTransparency = 0.1
+    background.BorderSizePixel = 0
+    background.Size = UDim2.new(1, 0, 1, 0)
+    background.Visible = false
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 35)), ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 10))})
+    gradient.Parent = background
+
+    local container = Instance.new("Frame")
+    container.Name = "Container"
+    container.Parent = background
+    container.BackgroundTransparency = 1
+    container.Position = UDim2.new(0.5, 0, 0.5, 0)
+    container.AnchorPoint = Vector2.new(0.5, 0.5)
+    container.Size = UDim2.new(0, 500, 0, 250)
+
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Parent = container
+    title.BackgroundTransparency = 1
+    title.Position = UDim2.new(0.5, 0, 0.2, 0)
+    title.Font = Enum.Font.GothamBlack
+    title.Text = "SYSTEM INITIALIZING"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 32
+
+    local progressBar = Instance.new("Frame")
+    progressBar.Name = "ProgressBar"
+    progressBar.Parent = container
+    progressBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    progressBar.BackgroundTransparency = 0.5
+    progressBar.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    progressBar.BorderSizePixel = 1
+    progressBar.Position = UDim2.new(0.5, 0, 0.5, 0)
+    progressBar.AnchorPoint = Vector2.new(0.5, 0.5)
+    progressBar.Size = UDim2.new(0.8, 0, 0, 10)
+
+    local progressFill = Instance.new("Frame")
+    progressFill.Name = "ProgressFill"
+    progressFill.Parent = progressBar
+    progressFill.BackgroundColor3 = Color3.fromRGB(10, 255, 127)
+    progressFill.BorderSizePixel = 0
+    progressFill.Size = UDim2.new(0, 0, 1, 0)
+
+    local status = Instance.new("TextLabel")
+    status.Name = "Status"
+    status.Parent = container
+    status.BackgroundTransparency = 1
+    status.Position = UDim2.new(0.5, 0, 0.75, 0)
+    status.AnchorPoint = Vector2.new(0.5, 0.5)
+    status.Font = Enum.Font.Gotham
+    status.Text = "Loading modules..."
+    status.TextColor3 = Color3.fromRGB(200, 200, 200)
+    status.TextSize = 18
+
+    local fpsCounter = Instance.new("TextLabel")
+    fpsCounter.Name = "FpsCounter"
+    fpsCounter.Parent = background
+    fpsCounter.BackgroundTransparency = 1
+    fpsCounter.Position = UDim2.new(0, 10, 0, 10)
+    fpsCounter.Font = Enum.Font.Code
+    fpsCounter.Text = "FPS: 0"
+    fpsCounter.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fpsCounter.TextSize = 14
+    fpsCounter.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Expose GUI elements for external control
+    GUI.screenGui = screenGui
+    GUI.background = background
+    GUI.title = title
+    GUI.status = status
+    GUI.progressBar = progressBar
+    GUI.progressFill = progressFill
+    GUI.fpsCounter = fpsCounter
+    GUI.container = container
+
+    -- Animation function
+    function GUI.Tween(object, properties)
+        Services.TweenService:Create(object, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), properties):Play()
+    end
+
+    -- Initial loading sequence
+    function GUI.StartLoadingSequence()
+        background.Visible = true
+        GUI.Tween(progressFill, {Size = UDim2.new(1, 0, 1, 0)})
+        task.wait(0.5)
+        GUI.Tween(container, {BackgroundTransparency = 1})
+        title.Text = "AUTO-JOINER [PRO]"
+        status.Text = "Awaiting character..."
+    end
+
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+end
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                  CORE LOGIC                                        //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local Logic = {}
+do
+    local teleportAttempts = 0
+
+    function Logic.JoinPrivateServer()
+        if teleportAttempts >= CONFIG.MAX_TELEPORT_ATTEMPTS then
+            GUI.status.Text = string.format("❌ All attempts failed. Retrying in %ds...", CONFIG.RETRY_DELAY_LONG)
+            GUI.status.TextColor3 = Color3.fromRGB(255, 80, 80)
+            task.wait(CONFIG.RETRY_DELAY_LONG)
+            teleportAttempts = 0 -- Reset counter and try again
+        end
+
+        teleportAttempts = teleportAttempts + 1
+        GUI.status.Text = string.format("Attempting to join... (%d/%d)", teleportAttempts, CONFIG.MAX_TELEPORT_ATTEMPTS)
+        GUI.status.TextColor3 = Color3.fromRGB(255, 180, 0)
+
+        local success, result = pcall(function()
+            Services.TeleportService:JoinPrivateServer(CONFIG.PRIVATE_SERVER_CODE)
+        end)
+
+        if not success then
+            GUI.status.Text = "Teleport failed. Server might be full or invalid."
+            task.wait(CONFIG.RETRY_DELAY_SHORT)
+            Logic.JoinPrivateServer() -- Recursive retry
+        else
+            -- If teleport is successful, Roblox will handle the rest. The script will re-run on the new server.
+            GUI.status.Text = "✅ Teleport initiated! Stand by..."
+            GUI.status.TextColor3 = Color3.fromRGB(10, 255, 127)
+        end
+    end
+end
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                     EVENTS & TASKS                                 //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- Anti-Lag & Performance Optimizations (runs once)
+pcall(function()
+    Services.Lighting.GlobalShadows = false
+    Services.Lighting.FogEnd = 100000
+    settings():GetService("RenderSettings").QualityLevel = Enum.QualityLevel.Level01
+    for _, descendant in ipairs(Services.Workspace:GetDescendants()) do
+        if descendant:IsA("Explosion") or descendant:IsA("ParticleEmitter") or descendant:IsA("Smoke") or descendant:IsA("Fire") then
+            descendant:Destroy()
+        end
+    end
+end)
+
+-- FPS Counter Task
+coroutine.wrap(function()
+    while task.wait(1) do
+        local fps = math.floor(Services.Workspace:GetRealPhysicsFPS())
+        GUI.fpsCounter.Text = "FPS: " .. tostring(fps)
+    end
+end)()
+
+-- Main trigger: Reacts to character loading (on join, on respawn, on server hop)
+local function OnCharacterAdded(character)
+    GUI.status.Text = "Character loaded. Preparing to teleport..."
+    task.wait(3) -- A small delay to ensure the game is fully loaded
+    coroutine.wrap(Logic.JoinPrivateServer)()
+end
+
+-- Connect the trigger
+Services.Players.LocalPlayer.CharacterAdded:Connect(OnCharacterAdded)
+
+-- Run the loading sequence and initial check
+GUI.StartLoadingSequence()
+if Services.Players.LocalPlayer.Character then
+    OnCharacterAdded(Services.Players.LocalPlayer.Character)
+end
+
+print("Auto-Joiner: Professional Edition - Loaded and Active.")
