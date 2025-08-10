@@ -1,0 +1,111 @@
+-- =======================================================================================
+-- ||      AUTO-JOINER: RESILIENT EDITION (V6.2 - PRE-CONFIGURED FOR GROW A GARDEN)     ||
+-- =======================================================================================
+
+if getgenv().AutoJoinerResilient then return end
+getgenv().AutoJoinerResilient = true
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                  CONFIGURATION                                   //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local CONFIG = {
+    -- This has been pre-configured for "grow a garden"
+    PLACE_ID = 16686483421,
+    PRIVATE_SERVER_CODE = "f9025449a7fe8f47a695dfab1ef33859",
+    RETRY_DELAY = 10,
+}
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                     SERVICES                                     //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local localPlayer = Players.LocalPlayer
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                  GUI & INTERFACE                                   //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoJoinerResilientUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+
+local container = Instance.new("Frame")
+container.Parent = screenGui
+container.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+container.BorderColor3 = Color3.fromRGB(10, 255, 127)
+container.BorderSizePixel = 2
+container.Position = UDim2.new(0.5, 0, 0.5, 0)
+container.AnchorPoint = Vector2.new(0.5, 0.5)
+container.Size = UDim2.new(0, 400, 0, 150)
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = container
+
+local title = Instance.new("TextLabel")
+title.Parent = container
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0.5, 0, 0.25, 0)
+title.Font = Enum.Font.GothamBlack
+title.Text = "AUTO-JOINER [RESILIENT]"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 24
+
+local status = Instance.new("TextLabel")
+status.Parent = container
+status.BackgroundTransparency = 1
+status.Position = UDim2.new(0.5, 0, 0.65, 0)
+status.Font = Enum.Font.Gotham
+status.Text = "Initializing..."
+status.TextColor3 = Color3.fromRGB(200, 200, 200)
+status.TextSize = 18
+
+screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                  CORE LOGIC                                        //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local function attemptTeleport()
+    status.Text = "Attempting to join 'grow a garden' VIP..."
+    status.TextColor3 = Color3.fromRGB(255, 180, 0)
+    task.wait(2)
+
+    -- This is the alternate, more direct teleport function.
+    local success, result = pcall(function()
+        TeleportService:TeleportToPrivateServer(CONFIG.PLACE_ID, CONFIG.PRIVATE_SERVER_CODE, {localPlayer})
+    end)
+
+    if success then
+        status.Text = "✅ Teleport command sent successfully!"
+        status.TextColor3 = Color3.fromRGB(10, 255, 127)
+        -- The script will stop here as Roblox takes over.
+    else
+        status.Text = "❌ Teleport failed. Executor may be patched."
+        status.TextColor3 = Color3.fromRGB(255, 80, 80)
+        task.wait(CONFIG.RETRY_DELAY)
+        attemptTeleport() -- Retry
+    end
+end
+
+-- ////////////////////////////////////////////////////////////////////////////////////////
+-- //                                     EVENTS                                       //
+-- ////////////////////////////////////////////////////////////////////////////////////////
+local function onCharacterAdded(character)
+    -- Check if we are in the correct game before teleporting
+    if game.PlaceId == CONFIG.PLACE_ID then
+        status.Text = "Character loaded. Preparing teleport..."
+        task.wait(3)
+        coroutine.wrap(attemptTeleport)()
+    else
+        status.Text = "Error: Script must be run in 'grow a garden'."
+        status.TextColor3 = Color3.fromRGB(255, 80, 80)
+    end
+end
+
+localPlayer.CharacterAdded:Connect(onCharacterAdded)
+if localPlayer.Character then
+    onCharacterAdded(localPlayer.Character)
+end
+
+print("Auto-Joiner: Resilient Edition (grow a garden) - Loaded and Active.")
